@@ -2,29 +2,45 @@
 
 > Every PIN has an address. Some PINs have a Cult.
 
-Mobile-first registry for discovering whether 194.194 Cult is active in an Indian PIN code.
+194.194 Cult is a mobile-first community registry and India PIN-code discovery layer, founded at Pin Code Café in Dhenkanal.
 
-## MVP
-- Six-digit PIN lookup
-- ACTIVE / FORMING / NOT HERE YET lifecycle
-- Public `/pincode/[pin]` pages
-- Dhenkanal 759001 as the founding chapter, hosted at Pin Code Café
-- Responsive brand experience
+## Routes
+- `/` — Cult discovery/search
+- `/pincodes` — India state/UT directory
+- `/pincodes/[state]` — district directory
+- `/pincodes/[state]/[district]` — valid PIN codes
+- `/pincode/[pin]` — useful postal page + Cult status
+- `/sitemap.xml` and `/robots.txt` — crawler discovery
+
+Every PIN page has unique metadata, canonical URL, postal details, internal geographic links and structured address data. Unknown PINs are not indexable and return 404 once the complete directory is loaded.
+
+## Official PIN data
+The generated `data/pincodes.json` is the build artifact used by the app. `scripts/import-pincodes.mjs` imports the Government of India Open Government Data / Department of Posts PIN directory and groups multiple post-office rows under one unique PIN.
+
+Set a data.gov.in API key and run:
+
+```bash
+DATA_GOV_IN_API_KEY=your_key npm run data:pincodes
+npm run build
+```
+
+On Windows PowerShell:
+
+```powershell
+$env:DATA_GOV_IN_API_KEY='your_key'
+npm run data:pincodes
+npm run build
+```
+
+The checked-in JSON currently remains a small development fixture. Run the importer before production deployment to materialize the complete official directory and therefore the complete set of crawlable PIN pages/sitemap entries.
+
+## Separation of concerns
+Postal master data and Cult state are intentionally separate. One PIN can contain multiple post offices, while one Cult status belongs to the PIN itself.
+
+Public Cult lifecycle: `ACTIVE`, `FORMING`, `NOT HERE YET`.
 
 ## Run
 ```bash
 npm install
 npm run dev
 ```
-
-## Data roadmap
-`lib/pincodes.ts` contains only MVP seed records. The next data milestone is an ingestion job for the official India Post / Government OGD All India Pincode Directory. Cult state must remain separate from post-office master records because multiple post offices can share one PIN.
-
-Proposed persistent model:
-- `pincodes`: unique PIN geography/search projection
-- `post_offices`: official office rows linked to PIN
-- `cult_locations`: unique PIN + lifecycle status/chapter metadata
-- `cult_interest`: expressions of interest used to move NOT HERE YET → FORMING
-
-## Product principle
-The public status language is deliberately `NOT HERE YET`, not `INACTIVE`: absence is an invitation, not a failed chapter.
