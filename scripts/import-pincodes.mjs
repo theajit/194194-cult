@@ -8,7 +8,26 @@ let offset=0;const limit=1000;const rows=[];
 while(true){const res=await fetch(`${base}&limit=${limit}&offset=${offset}`);if(!res.ok)throw new Error(`OGD request failed ${res.status}`);const json=await res.json();const batch=json.records||[];rows.push(...batch);if(batch.length<limit)break;offset+=limit;}
 const pick=(r,names)=>{for(const n of names)if(r[n]!=null&&String(r[n]).trim())return String(r[n]).trim();return ''};
 const byPin=new Map();
-for(const r of rows){const pincode=pick(r,['pincode','pin_code','pin']);if(!/^\d{6}$/.test(pincode))continue;const state=pick(r,['statename','state_name','state']);const district=pick(r,['district','districtname','district_name']);const officeName=pick(r,['officename','office_name','office']);if(!state||!district||!officeName)continue;const office={officeName,officeType:pick(r,['officetype','office_type']),deliveryStatus:pick(r,['delivery','deliverystatus','delivery_status'])};const existing=byPin.get(pincode);if(existing){if(!existing.postOffices.some(x=>x.officeName===officeName))existing.postOffices.push(office)}else byPin.set(pincode,{pincode,district,state,postOffices:[office]});}
-const output=[...byPin.values()].sort((a,b)=>a.pincode.localeCompare(b.pincode));
-await fs.mkdir('data',{recursive:true});await fs.writeFile('data/pincodes.json',JSON.stringify(output));
+for(const r of rows){
+  const pincode=pick(r,['pincode','pin_code','pin']);if(!/^\d{6}$/.test(pincode))continue;
+  const state=pick(r,['statename','state_name','state']);
+  const district=pick(r,['district','districtname','district_name']);
+  const officeName=pick(r,['officename','office_name','office']);
+  if(!state||!district||!officeName)continue;
+  const office={
+    officeName,
+    officeType:pick(r,['officetype','office_type']),
+    deliveryStatus:pick(r,['delivery','deliverystatus','delivery_status']),
+    circleName:pick(r,['circlename','circle_name','circle']),
+    regionName:pick(r,['regionname','region_name','region']),
+    divisionName:pick(r,['divisionname','division_name','division'])
+  };
+  const existing=byPin.get(pincode);
+  if(existing){if(!existing.postOffices.some(x=>x.officeName===officeName))existing.postOffices.push(office)}
+  else byPin.set(pincode,{pincode,district,state,postOffices:[office]});
+}
+const output=Array.from(byPin.values()).sort((a,b)=>a.pincode.localeCompare(b.pincode));
+await fs.mkdir('data',{recursive:true});
+await fs.writeFile('data/pincodes.json',JSON.stringify(output));
+await fs.writeFile('data/pincodes.meta.json',JSON.stringify({source:'Department of Posts / data.gov.in',resourceId:RESOURCE_ID,importedAt:new Date().toISOString(),postOfficeRows:rows.length,pinCount:output.length}));
 console.log(`Imported ${rows.length} post-office rows into ${output.length} unique PIN pages.`);
