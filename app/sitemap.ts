@@ -1,0 +1,4 @@
+import type {MetadataRoute} from 'next';
+import {allPins,states,slug,districtsForState} from '../lib/directory';
+const SITE='https://cult.pincode.cafe';
+export default function sitemap():MetadataRoute.Sitemap{const now=new Date();const urls:MetadataRoute.Sitemap=[{url:SITE,lastModified:now,changeFrequency:'weekly',priority:1},{url:`${SITE}/pincodes`,lastModified:now,changeFrequency:'monthly',priority:.9}];for(const state of states()){const s=slug(state);urls.push({url:`${SITE}/pincodes/${s}`,lastModified:now,changeFrequency:'monthly',priority:.7});for(const district of districtsForState(s))urls.push({url:`${SITE}/pincodes/${s}/${slug(district)}`,lastModified:now,changeFrequency:'monthly',priority:.6})}for(const p of allPins())urls.push({url:`${SITE}/pincode/${p.pincode}`,lastModified:now,changeFrequency:'monthly',priority:.8});return urls}
