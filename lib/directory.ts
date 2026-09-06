@@ -1,6 +1,6 @@
 import seed from '../data/pincodes.json';
 
-export type PostOffice={officeName:string;officeType?:string;deliveryStatus?:string};
+export type PostOffice={officeName:string;officeType?:string;deliveryStatus?:string;circleName?:string;regionName?:string;divisionName?:string};
 export type PinRecord={pincode:string;district:string;state:string;postOffices:PostOffice[]};
 const records=seed as PinRecord[];
 const slug=(v:string)=>v.toLowerCase().trim().replace(/&/g,'and').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
