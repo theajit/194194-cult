@@ -4,7 +4,7 @@ const {Client}=pg;
 const MAX_CSV_BYTES=35*1024*1024;
 const BATCH_SIZE=500;
 
-export type PostalImportResult={acceptedRows:number;officeRows:number;uniquePins:number;sourceFile:string;sourceDataset:string};
+export type PostalImportResult={acceptedRows:number;skippedRows:number;officeRows:number;uniquePins:number;sourceFile:string;sourceDataset:string;scope:string};
 
 type ImportOptions={
   bytes:Uint8Array;
@@ -27,6 +27,19 @@ function parseCsvLine(line:string):string[]{
 
 const normalize=(v:string)=>v.toLowerCase().replace(/[^a-z0-9]/g,'');
 const numberOrNull=(v:string)=>{const n=Number.parseFloat(v);return Number.isFinite(n)?n:null};
+const clean=(v:string)=>v.trim().toLowerCase();
+
+export const PHASE1_SCOPE='Odisha + Karnataka + Delhi + Mumbai + Kolkata + Chennai + Hyderabad';
+
+function inPhase1Scope(stateRaw:string,districtRaw:string){
+  const state=clean(stateRaw),district=clean(districtRaw);
+  if(state==='odisha'||state==='karnataka'||state==='delhi')return true;
+  if(state==='maharashtra'&&district.includes('mumbai'))return true;
+  if(state==='west bengal'&&district.includes('kolkata'))return true;
+  if(state==='tamil nadu'&&district.includes('chennai'))return true;
+  if(state==='telangana'&&district.includes('hyderabad'))return true;
+  return false;
+}
 
 export async function importPostalCsvToDatabase(options:ImportOptions):Promise<PostalImportResult>{
   const connectionString=process.env.DATABASE_URL;
@@ -62,7 +75,7 @@ export async function importPostalCsvToDatabase(options:ImportOptions):Promise<P
     let headers:string[]|null=null;
     let indexes:Record<string,number>|null=null;
     let batch:Array<Array<string|number|null>>=[];
-    let acceptedRows=0;
+    let acceptedRows=0,skippedRows=0;
 
     const flush=async()=>{
       if(!batch.length)return;
@@ -94,7 +107,8 @@ export async function importPostalCsvToDatabase(options:ImportOptions):Promise<P
       const cols=parseCsvLine(line);
       const value=(i:number)=>i>=0?(cols[i]||'').trim():'';
       const pincode=value(indexes!.pin),office=value(indexes!.office),district=value(indexes!.district),state=value(indexes!.state);
-      if(!/^\d{6}$/.test(pincode)||!office||!district||!state)continue;
+      if(!/^\d{6}$/.test(pincode)||!office||!district||!state){skippedRows++;continue;}
+      if(!inPhase1Scope(state,district)){skippedRows++;continue;}
       batch.push([
         pincode,value(indexes!.circle)||null,value(indexes!.region)||null,value(indexes!.division)||null,office,value(indexes!.type)||null,value(indexes!.delivery)||null,district,state,
         numberOrNull(value(indexes!.latitude)),numberOrNull(value(indexes!.longitude)),sourceDataset,sourceUpdatedAt
@@ -103,7 +117,7 @@ export async function importPostalCsvToDatabase(options:ImportOptions):Promise<P
       if(batch.length>=BATCH_SIZE)await flush();
     }
     await flush();
-    if(!acceptedRows)throw new Error('No valid postal rows found in CSV');
+    if(!acceptedRows)throw new Error(`No valid postal rows found for Phase 1 scope: ${PHASE1_SCOPE}`);
 
     await client.query('BEGIN');
     try{
@@ -115,9 +129,9 @@ export async function importPostalCsvToDatabase(options:ImportOptions):Promise<P
         FROM postal_stage
         ORDER BY pincode,office_name,district,state`);
       const counts=(await client.query('SELECT COUNT(*)::int AS offices, COUNT(DISTINCT pincode)::int AS pins FROM postal_post_offices')).rows[0];
-      await client.query('INSERT INTO postal_imports (source_file,source_dataset,office_rows,unique_pins) VALUES ($1,$2,$3,$4)',[options.sourceFile,sourceDataset,counts.offices,counts.pins]);
+      await client.query('INSERT INTO postal_imports (source_file,source_dataset,office_rows,unique_pins) VALUES ($1,$2,$3,$4)',[options.sourceFile,`${sourceDataset} · ${PHASE1_SCOPE}`,counts.offices,counts.pins]);
       await client.query('COMMIT');
-      return {acceptedRows,officeRows:Number(counts.offices),uniquePins:Number(counts.pins),sourceFile:options.sourceFile,sourceDataset};
+      return {acceptedRows,skippedRows,officeRows:Number(counts.offices),uniquePins:Number(counts.pins),sourceFile:options.sourceFile,sourceDataset,scope:PHASE1_SCOPE};
     }catch(error){
       await client.query('ROLLBACK');
       throw error;
