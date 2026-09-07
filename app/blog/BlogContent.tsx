@@ -1,5 +1,4 @@
 import type {ReactNode} from 'react';
-import {COFFEE_GUIDE_IMAGE} from './coffee-guide-image';
 
 function inline(text:string):ReactNode[]{
   const nodes:ReactNode[]=[];
@@ -41,7 +40,7 @@ function CaffeineStructure(){
 
 function CoffeeGuideInfographic(){
   return <figure className="coffeeGuideInfographic">
-    <img src={COFFEE_GUIDE_IMAGE} alt="Coffee Guide showing espresso, doppio, macchiato, ristretto, long black, latte, cappuccino, flat white, piccolo, mocha and affogato"/>
+    <img src="/api/blog/coffee-guide-image" alt="Coffee Guide showing espresso, doppio, macchiato, ristretto, long black, latte, cappuccino, flat white, piccolo, mocha and affogato"/>
     <figcaption>Know your cup — a visual guide to common espresso-based drinks.</figcaption>
   </figure>;
 }
