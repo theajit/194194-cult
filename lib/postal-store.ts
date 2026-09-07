@@ -62,7 +62,17 @@ export async function syncPostalDirectory(force=false):Promise<PostalCacheMeta>{
   const response=await fetch('/api/pincodes/all',{cache:'no-store'});
   if(!response.ok)throw new Error(`Postal directory sync failed (${response.status})`);
   const payload=await response.json() as DirectoryPayload;
-  if(!force&&current?.version===payload.version&&current.pinCount===payload.pinCount)return current;
+
+  if(!force&&current){
+    const sameDataset=current.version===payload.version&&current.pinCount===payload.pinCount&&current.officeCount===payload.officeCount;
+    if(sameDataset)return current;
+
+    // Never downgrade a device that already has a richer postal directory,
+    // e.g. an official All India CSV imported locally, to the small bundled seed.
+    const currentIsRicher=current.pinCount>payload.pinCount||current.officeCount>payload.officeCount;
+    if(currentIsRicher)return current;
+  }
+
   return replacePostalDirectory(payload);
 }
 
