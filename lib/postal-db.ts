@@ -4,7 +4,7 @@ export type PostalOffice={
   officeName:string;officeType:string|null;deliveryStatus:string|null;circleName:string|null;regionName:string|null;divisionName:string|null;latitude:number|null;longitude:number|null;
 };
 export type PostalPin={pincode:string;district:string;state:string;postOffices:PostalOffice[]};
-export type PostalSearchResult={pincode:string;district:string;state:string;office:string;postOffices:number};
+export type PostalSearchResult={pincode:string;district:string;state:string;office:string;postOffices:number;cultStatus:'ACTIVE'|'FORMING'|'NOT_HERE_YET'};
 export const postalSlug=(value:string)=>value.toLowerCase().trim().replace(/&/g,'and').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 
 export async function getPostalPin(pincode:string):Promise<PostalPin|null>{
@@ -19,13 +19,14 @@ export async function getPostalPin(pincode:string):Promise<PostalPin|null>{
 export async function searchPostal(query:string,limit=20):Promise<PostalSearchResult[]>{
   if(!hasDatabase())return [];
   const q=query.trim();if(q.length<2)return [];
-  const result=await getDb().query(`SELECT pincode,district,state,MIN(office_name) AS office,COUNT(*)::int AS post_offices
-    FROM postal_post_offices
-    WHERE pincode LIKE $1 OR office_name ILIKE $2 OR district ILIKE $2 OR state ILIKE $2
-    GROUP BY pincode,district,state
-    ORDER BY CASE WHEN pincode=$3 THEN 0 WHEN pincode LIKE $1 THEN 1 ELSE 2 END,pincode
+  const result=await getDb().query(`SELECT p.pincode,p.district,p.state,MIN(p.office_name) AS office,COUNT(*)::int AS post_offices,COALESCE(c.status,'NOT_HERE_YET') AS cult_status
+    FROM postal_post_offices p
+    LEFT JOIN cult_locations c ON c.pincode=p.pincode
+    WHERE p.pincode LIKE $1 OR p.office_name ILIKE $2 OR p.district ILIKE $2 OR p.state ILIKE $2
+    GROUP BY p.pincode,p.district,p.state,c.status
+    ORDER BY CASE WHEN p.pincode=$3 THEN 0 WHEN p.pincode LIKE $1 THEN 1 ELSE 2 END,p.pincode
     LIMIT $4`,[`${q}%`,`%${q}%`,q,Math.min(Math.max(limit,1),50)]);
-  return result.rows.map(r=>({pincode:r.pincode.trim(),district:r.district,state:r.state,office:r.office,postOffices:Number(r.post_offices)}));
+  return result.rows.map(r=>({pincode:r.pincode.trim(),district:r.district,state:r.state,office:r.office,postOffices:Number(r.post_offices),cultStatus:r.cult_status}));
 }
 
 export async function listPostalStates(){
@@ -52,10 +53,12 @@ export async function findPostalDistrictBySlug(state:string,districtSlug:string)
 
 export async function listPinsForDistrict(state:string,district:string):Promise<PostalSearchResult[]>{
   if(!hasDatabase())return [];
-  const result=await getDb().query(`SELECT pincode,district,state,MIN(office_name) AS office,COUNT(*)::int AS post_offices
-    FROM postal_post_offices WHERE state=$1 AND district=$2
-    GROUP BY pincode,district,state ORDER BY pincode`,[state,district]);
-  return result.rows.map(r=>({pincode:r.pincode.trim(),district:r.district,state:r.state,office:r.office,postOffices:Number(r.post_offices)}));
+  const result=await getDb().query(`SELECT p.pincode,p.district,p.state,MIN(p.office_name) AS office,COUNT(*)::int AS post_offices,COALESCE(c.status,'NOT_HERE_YET') AS cult_status
+    FROM postal_post_offices p
+    LEFT JOIN cult_locations c ON c.pincode=p.pincode
+    WHERE p.state=$1 AND p.district=$2
+    GROUP BY p.pincode,p.district,p.state,c.status ORDER BY p.pincode`,[state,district]);
+  return result.rows.map(r=>({pincode:r.pincode.trim(),district:r.district,state:r.state,office:r.office,postOffices:Number(r.post_offices),cultStatus:r.cult_status}));
 }
 
 export async function getPostalImportStatus(){
