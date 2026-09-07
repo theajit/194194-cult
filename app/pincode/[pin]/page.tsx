@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import type {Metadata} from 'next';
 import {notFound} from 'next/navigation';
-import {getPin as getSeedPin} from '../../../lib/directory';
 import {getPostalPin,postalSlug} from '../../../lib/postal-db';
 import {getCultLocation} from '../../../lib/cult-db';
 
@@ -10,8 +9,8 @@ const label={ACTIVE:'ACTIVE',FORMING:'FORMING',NOT_HERE_YET:'NOT HERE YET'} as c
 export const dynamic='force-dynamic';
 
 async function resolvePostal(pin:string){
-  try{return (await getPostalPin(pin))??getSeedPin(pin)??null}
-  catch{return getSeedPin(pin)??null}
+  try{return await getPostalPin(pin)}
+  catch{return null}
 }
 
 export async function generateMetadata({params}:{params:{pin:string}}):Promise<Metadata>{
