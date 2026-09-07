@@ -17,10 +17,10 @@ export async function PATCH(request:Request,{params}:{params:{pin:string}}){
   if(unknown.length)return NextResponse.json({error:`Unsupported field(s): ${unknown.join(', ')}`},{status:400});
   const current=await getCultLocation(params.pin);
   if(current.status==='NOT_HERE_YET'&&body.status===undefined)return NextResponse.json({error:'status is required when creating a Cult location'},{status:400});
-  if(body.status!==undefined&&(!statuses.has(body.status as CultStatus)))return NextResponse.json({error:'status must be ACTIVE, FORMING, or NOT_HERE_YET'},{status:400});
-  if(body.chapterNumber!==undefined&&body.chapterNumber!==null&&(!Number.isInteger(body.chapterNumber)||Number(body.chapterNumber)<1))return NextResponse.json({error:'chapterNumber must be a positive integer or null'},{status:400});
-  if(body.sinceYear!==undefined&&body.sinceYear!==null&&(!Number.isInteger(body.sinceYear)||Number(body.sinceYear)<1900||Number(body.sinceYear)>2100))return NextResponse.json({error:'sinceYear must be a valid year or null'},{status:400});
-  if(body.memberCount!==undefined&&body.memberCount!==null&&(!Number.isInteger(body.memberCount)||Number(body.memberCount)<0))return NextResponse.json({error:'memberCount must be a non-negative integer or null'},{status:400});
+  if(body.status!==undefined&&!statuses.has(body.status as CultStatus))return NextResponse.json({error:'status must be ACTIVE, FORMING, or NOT_HERE_YET'},{status:400});
+  if(body.chapterNumber!==undefined&&body.chapterNumber!==null&&(typeof body.chapterNumber!=='number'||!Number.isInteger(body.chapterNumber)||body.chapterNumber<1))return NextResponse.json({error:'chapterNumber must be a positive integer or null'},{status:400});
+  if(body.sinceYear!==undefined&&body.sinceYear!==null&&(typeof body.sinceYear!=='number'||!Number.isInteger(body.sinceYear)||body.sinceYear<1900||body.sinceYear>2100))return NextResponse.json({error:'sinceYear must be a valid year or null'},{status:400});
+  if(body.memberCount!==undefined&&body.memberCount!==null&&(typeof body.memberCount!=='number'||!Number.isInteger(body.memberCount)||body.memberCount<0))return NextResponse.json({error:'memberCount must be a non-negative integer or null'},{status:400});
   const nullableStrings=['chapterName','hostLocation','activatedAt','instagramUrl','whatsappUrl'];
   for(const key of nullableStrings)if(body[key]!==undefined&&body[key]!==null&&typeof body[key]!=='string')return NextResponse.json({error:`${key} must be a string or null`},{status:400});
   try{return NextResponse.json(await updateCultLocation(params.pin,body as CultPatch))}
