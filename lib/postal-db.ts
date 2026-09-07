@@ -5,6 +5,7 @@ export type PostalOffice={
 };
 export type PostalPin={pincode:string;district:string;state:string;postOffices:PostalOffice[]};
 export type PostalSearchResult={pincode:string;district:string;state:string;office:string;postOffices:number};
+export const postalSlug=(value:string)=>value.toLowerCase().trim().replace(/&/g,'and').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 
 export async function getPostalPin(pincode:string):Promise<PostalPin|null>{
   if(!hasDatabase())return null;
@@ -29,14 +30,32 @@ export async function searchPostal(query:string,limit=20):Promise<PostalSearchRe
 
 export async function listPostalStates(){
   if(!hasDatabase())return [];
-  const result=await getDb().query(`SELECT state,COUNT(DISTINCT pincode)::int AS pins,COUNT(*)::int AS offices FROM postal_post_offices GROUP BY state ORDER BY state`);
-  return result.rows.map(r=>({state:r.state,pins:Number(r.pins),offices:Number(r.offices)}));
+  const result=await getDb().query(`SELECT state,COUNT(DISTINCT district)::int AS districts,COUNT(DISTINCT pincode)::int AS pins,COUNT(*)::int AS offices FROM postal_post_offices GROUP BY state ORDER BY state`);
+  return result.rows.map(r=>({state:r.state,districts:Number(r.districts),pins:Number(r.pins),offices:Number(r.offices)}));
 }
 
 export async function listPostalDistricts(state:string){
   if(!hasDatabase())return [];
   const result=await getDb().query(`SELECT district,COUNT(DISTINCT pincode)::int AS pins,COUNT(*)::int AS offices FROM postal_post_offices WHERE state=$1 GROUP BY district ORDER BY district`,[state]);
   return result.rows.map(r=>({district:r.district,pins:Number(r.pins),offices:Number(r.offices)}));
+}
+
+export async function findPostalStateBySlug(stateSlug:string){
+  const states=await listPostalStates();
+  return states.find(item=>postalSlug(item.state)===stateSlug)||null;
+}
+
+export async function findPostalDistrictBySlug(state:string,districtSlug:string){
+  const districts=await listPostalDistricts(state);
+  return districts.find(item=>postalSlug(item.district)===districtSlug)||null;
+}
+
+export async function listPinsForDistrict(state:string,district:string):Promise<PostalSearchResult[]>{
+  if(!hasDatabase())return [];
+  const result=await getDb().query(`SELECT pincode,district,state,MIN(office_name) AS office,COUNT(*)::int AS post_offices
+    FROM postal_post_offices WHERE state=$1 AND district=$2
+    GROUP BY pincode,district,state ORDER BY pincode`,[state,district]);
+  return result.rows.map(r=>({pincode:r.pincode.trim(),district:r.district,state:r.state,office:r.office,postOffices:Number(r.post_offices)}));
 }
 
 export async function getPostalImportStatus(){
