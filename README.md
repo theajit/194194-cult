@@ -45,20 +45,22 @@ For a private Dokploy PostgreSQL service, TLS is normally not required unless yo
 
 ## Database setup
 
-Run the idempotent schema migration after setting `DATABASE_URL`:
+The production start command runs the idempotent schema migration before starting Next.js.
 
-```bash
-npm install
-npm run db:migrate
+The official CSV is checked into the repository at:
+
+```text
+data/postal/all-india-pincode-directory.csv
 ```
 
-Import the official CSV:
+Postal import is intentionally an explicit admin operation because it replaces the postal master table. After deployment, import the bundled CSV with:
 
-```bash
-npm run db:import:postal -- /path/to/5c2f62fe-5afa-4119-a499-fec9d604d5bd.csv
+```text
+POST /api/admin/postal/import
+Authorization: Bearer <ADMIN_TOKEN>
 ```
 
-The importer stages the CSV, replaces only the postal master table, records import metadata, and leaves `cult_locations` untouched.
+No multipart body is required. The endpoint reads the bundled CSV and imports only the configured Phase-1 scope: Odisha, Karnataka, Delhi, Mumbai, Kolkata, Chennai and Hyderabad. Multipart CSV upload remains available for future refreshes.
 
 Check import status:
 
@@ -77,7 +79,7 @@ GET /api/postal/states/Odisha/districts
 GET /api/postal/status
 ```
 
-The legacy `GET /api/pincodes` endpoint remains as a PostgreSQL-backed compatibility route.
+The legacy `GET /api/pincodes` endpoint remains as a PostgreSQL-backed compatibility route. Individual PIN pages now use PostgreSQL as the postal source of truth and do not fall back to bundled seed JSON.
 
 ## Cult API
 
@@ -144,12 +146,11 @@ Recommended deployment sequence:
 
 ```bash
 npm install
-npm run db:migrate
 npm run build
 npm run start
 ```
 
-The postal CSV import is a data operation, not a normal deployment step. Run it once after creating PostgreSQL and again only when refreshing the official postal dataset.
+Schema migration runs automatically at startup. Postal CSV import remains admin-only and explicit.
 
 ## Run locally
 
