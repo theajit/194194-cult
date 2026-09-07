@@ -1,18 +1,3 @@
-import Link from 'next/link';
-import type {Metadata} from 'next';
-import {listPublishedPosts} from '../../lib/blog-db';
-
-export const dynamic='force-dynamic';
-export const metadata:Metadata={title:'194.194 Cult Blog',description:'Stories, coffee guides and ideas from 194.194 Cult.'};
-
-export default async function BlogIndex(){
-  const posts=await listPublishedPosts();
-  return <main>
-    <nav><Link href="/" className="brand"><b>194.194</b><span>CULT</span></Link><Link href="/" className="back">← BACK HOME</Link></nav>
-    <section className="blogShell">
-      <header className="blogHero"><div className="blogEyebrow">194.194 CULT · JOURNAL</div><h1>Ideas worth<br/><i>brewing.</i></h1><p>Coffee, place, community, digital identity and the experiments behind 194.194 Cult.</p></header>
-      <div className="blogGrid">{posts.map(post=><Link className="blogCard" key={post.slug} href={`/blog/${post.slug}`}><span>{post.coverKind==='coffee-guide'?'COFFEE GUIDE':post.coverKind==='caffeine'?'194.194 CULT':'JOURNAL'}</span><h2>{post.title}</h2><p>{post.excerpt}</p><b>READ STORY →</b></Link>)}</div>
-    </section>
-    <footer><b>194.194 CULT</b><span>PIN CODE · DIGIPIN · COMMUNITY</span><span>JOURNAL</span></footer>
-  </main>;
-}
+import Link from 'next/link';import type {Metadata} from 'next';import {listPublishedPosts} from '../../lib/blog-db';
+export const dynamic='force-dynamic';export const metadata:Metadata={title:'194.194 Cult Blog',description:'Stories, coffee guides and ideas from 194.194 Cult.'};
+export default async function BlogIndex(){const posts=await listPublishedPosts();return <main><nav><Link href="/" className="brand"><b>194.194</b><span>CULT</span></Link><div className="navLinks"><Link href="/blog/write" className="back">WRITE FOR CULT</Link><Link href="/" className="back">← HOME</Link></div></nav><section className="blogShell"><header className="blogHero"><div className="blogEyebrow">194.194 CULT · JOURNAL</div><h1>Ideas worth<br/><i>brewing.</i></h1><p>Coffee, place, community, digital identity and ideas from people across the Cult.</p><Link className="journalWriteCta" href="/blog/write">HAVE SOMETHING TO SAY? SUBMIT A STORY →</Link></header><div className="blogGrid">{posts.map(post=><Link className="blogCard" key={post.slug} href={`/blog/${post.slug}`}><span>{post.coverKind==='coffee-guide'?'COFFEE GUIDE':post.coverKind==='caffeine'?'194.194 CULT':'COMMUNITY JOURNAL'}</span><h2>{post.title}</h2><p>{post.excerpt}</p><b>READ STORY →</b></Link>)}</div></section><footer><b>194.194 CULT</b><span>PIN CODE · DIGIPIN · COMMUNITY</span><span>JOURNAL</span></footer></main>}
