@@ -1,4 +1,5 @@
 import type {ReactNode} from 'react';
+import {COFFEE_GUIDE_IMAGE} from './coffee-guide-image';
 
 function inline(text:string):ReactNode[]{
   const nodes:ReactNode[]=[];
@@ -38,6 +39,13 @@ function CaffeineStructure(){
   </figure>;
 }
 
+function CoffeeGuideInfographic(){
+  return <figure className="coffeeGuideInfographic">
+    <img src={COFFEE_GUIDE_IMAGE} alt="Coffee Guide showing espresso, doppio, macchiato, ristretto, long black, latte, cappuccino, flat white, piccolo, mocha and affogato"/>
+    <figcaption>Know your cup — a visual guide to common espresso-based drinks.</figcaption>
+  </figure>;
+}
+
 const coffeeSpec:Record<string,{title:string;layers:Array<{label:string;height:number;kind:string}>;note?:string}>={
   espresso:{title:'Espresso',layers:[{label:'Espresso',height:38,kind:'espresso'}]},
   doppio:{title:'Doppio',layers:[{label:'Double espresso',height:58,kind:'espresso'}]},
@@ -70,6 +78,7 @@ function CoffeeDiagram({kind}:{kind:string}){
 function shortcode(line:string){
   const trimmed=line.trim();
   if(trimmed==='[[caffeine-structure]]')return <CaffeineStructure/>;
+  if(trimmed==='[[coffee-guide-image]]')return <CoffeeGuideInfographic/>;
   const coffee=trimmed.match(/^\[\[coffee:([^\]]+)\]\]$/);
   if(coffee)return <CoffeeDiagram kind={coffee[1]}/>;
   return null;
@@ -78,6 +87,8 @@ function shortcode(line:string){
 export default function BlogContent({markdown}:{markdown:string}){
   const lines=markdown.replace(/\r/g,'').split('\n');
   const out:ReactNode[]=[];
+  const isCoffeeGuide=/\[\[coffee:[^\]]+\]\]/.test(markdown);
+  if(isCoffeeGuide)out.push(<CoffeeGuideInfographic key="coffee-guide-lead"/>);
   let i=0;
   while(i<lines.length){
     const line=lines[i];
