@@ -16,17 +16,6 @@ const ssl=process.env.DATABASE_SSL==='true'
 const sourceDataset=process.env.POSTAL_SOURCE_DATASET||'Department of Posts / data.gov.in';
 const sourceUpdatedAt=process.env.POSTAL_SOURCE_UPDATED_AT||null;
 const batchSize=500;
-const PHASE1_SCOPE='Odisha + Karnataka + Delhi + Mumbai + Kolkata + Chennai + Hyderabad';
-const clean=v=>v.trim().toLowerCase();
-function inPhase1Scope(stateRaw,districtRaw){
-  const state=clean(stateRaw),district=clean(districtRaw);
-  if(state==='odisha'||state==='karnataka'||state==='delhi')return true;
-  if(state==='maharashtra'&&district.includes('mumbai'))return true;
-  if(state==='west bengal'&&district.includes('kolkata'))return true;
-  if(state==='tamil nadu'&&district.includes('chennai'))return true;
-  if(state==='telangana'&&district.includes('hyderabad'))return true;
-  return false;
-}
 
 function parseCsvLine(line){
   const out=[];let current='';let quoted=false;
@@ -95,7 +84,6 @@ try{
     const value=i=>i>=0?(cols[i]||'').trim():'';
     const pincode=value(indexes.pin),office=value(indexes.office),district=value(indexes.district),state=value(indexes.state);
     if(!/^\d{6}$/.test(pincode)||!office||!district||!state){skippedRows++;continue;}
-    if(!inPhase1Scope(state,district)){skippedRows++;continue;}
     batch.push([
       pincode,value(indexes.circle)||null,value(indexes.region)||null,value(indexes.division)||null,office,value(indexes.type)||null,value(indexes.delivery)||null,district,state,
       numberOrNull(value(indexes.latitude)),numberOrNull(value(indexes.longitude)),sourceDataset,sourceUpdatedAt
@@ -104,7 +92,7 @@ try{
     if(batch.length>=batchSize)await flush();
   }
   await flush();
-  if(!acceptedRows)throw new Error(`No valid postal rows found for Phase 1 scope: ${PHASE1_SCOPE}`);
+  if(!acceptedRows)throw new Error('No valid postal rows found in the CSV');
 
   await client.query('BEGIN');
   try{
@@ -116,9 +104,9 @@ try{
       FROM postal_stage
       ORDER BY pincode,office_name,district,state`);
     const counts=(await client.query('SELECT COUNT(*)::int AS offices, COUNT(DISTINCT pincode)::int AS pins FROM postal_post_offices')).rows[0];
-    await client.query('INSERT INTO postal_imports (source_file,source_dataset,office_rows,unique_pins) VALUES ($1,$2,$3,$4)',[path.basename(csvPath),`${sourceDataset} · ${PHASE1_SCOPE}`,counts.offices,counts.pins]);
+    await client.query('INSERT INTO postal_imports (source_file,source_dataset,office_rows,unique_pins) VALUES ($1,$2,$3,$4)',[path.basename(csvPath),sourceDataset,counts.offices,counts.pins]);
     await client.query('COMMIT');
-    console.log(`Imported ${counts.offices} post offices across ${counts.pins} unique PIN codes from ${acceptedRows} accepted rows (${skippedRows} skipped). Scope: ${PHASE1_SCOPE}.`);
+    console.log(`Imported ${counts.offices} post offices across ${counts.pins} unique PIN codes from ${acceptedRows} accepted rows (${skippedRows} skipped). Scope: All India.`);
   }catch(error){
     await client.query('ROLLBACK');
     throw error;
