@@ -5,12 +5,20 @@
 .postalFilters label>span{font-size:9px;font-weight:900;letter-spacing:1.5px;text-transform:uppercase}
 .postalFilters select{width:100%;height:42px;border:1px solid #a9a69d;background:#fff;color:#171714;padding:0 12px;font:inherit;font-size:14px;outline:none}
 .postalFilters select:focus{border-color:#171714;box-shadow:0 0 0 1px #171714}
-.clearFilters{height:42px;border:1px solid #a9a69d;background:#fff;color:#171714;padding:0 16px;font-size:9px;letter-spacing:1.3px;white-space:nowrap}
-.clearFilters:hover{border-color:#171714}
+.clearFilters{height:42px!important;border:1px solid #a9a69d!important;background:#fff!important;color:#171714!important;padding:0 16px!important;font-size:9px!important;letter-spacing:1.3px!important;white-space:nowrap}
+.clearFilters:hover{border-color:#171714!important}
 .filterBadges{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:20px}
-.filterBadges button{min-height:38px;border:1px solid transparent;border-radius:5px;background:#171714;color:#fff;padding:8px 13px;font-size:11px;letter-spacing:.3px}
-.filterBadges button b{margin-left:5px}
-.filterBadges button.active{box-shadow:inset 0 0 0 2px #171714}
+.filterBadges button{display:inline-flex;align-items:center;gap:7px;width:auto;min-height:38px;border:1px solid transparent!important;border-radius:5px;padding:8px 13px!important;font-size:11px!important;line-height:1.15;font-weight:700;letter-spacing:.3px!important;cursor:pointer}
+.filterBadges button b{margin-left:3px}
+.filterBadges .allBadge{background:#171714!important;color:#fff!important}
+.filterBadges .headBadge{background:#fde6e8!important;color:#9b1d2d!important}
+.filterBadges .subBadge{background:#e4edff!important;color:#154b9a!important}
+.filterBadges .branchBadge{background:#ebe7ff!important;color:#493092!important}
+.filterBadges .otherBadge{background:#e9e9e5!important;color:#343431!important}
+.filterBadges .deliveryYes{background:#ddf5df!important;color:#08742f!important}
+.filterBadges .deliveryNo{background:#fff0c9!important;color:#6c4c00!important}
+.filterBadges .deliveryUnknown{background:#e9e9e5!important;color:#494943!important}
+.filterBadges button.active{border-color:#171714!important;box-shadow:inset 0 0 0 1px #171714}
 .filterDivider{width:1px;height:30px;background:#aaa;margin:0 3px}
 .officeBadge,.deliveryBadge{display:inline-flex;align-items:center;gap:7px;width:max-content;max-width:100%;border-radius:5px;padding:6px 10px;font-size:13px;line-height:1.15;font-weight:700}
 .headBadge{background:#fde6e8;color:#9b1d2d}
@@ -20,7 +28,6 @@
 .deliveryYes{background:#ddf5df;color:#08742f}
 .deliveryNo{background:#fff0c9;color:#6c4c00}
 .deliveryUnknown{background:#e9e9e5;color:#494943}
-.filterBadges .headBadge,.filterBadges .subBadge,.filterBadges .branchBadge,.filterBadges .deliveryYes,.filterBadges .deliveryNo{color:inherit}
 .cardBadges{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 8px}
 .deliveryDescription{margin:8px 0 0!important;min-height:44px}
 .compactOfficeGrid{gap:12px;background:transparent;border:0}
