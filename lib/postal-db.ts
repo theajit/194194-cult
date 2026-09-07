@@ -19,13 +19,25 @@ export async function getPostalPin(pincode:string):Promise<PostalPin|null>{
 export async function searchPostal(query:string,limit=20):Promise<PostalSearchResult[]>{
   if(!hasDatabase())return [];
   const q=query.trim();if(q.length<2)return [];
+  const terms=q.split(/[\s+,]+/).map(v=>v.trim()).filter(Boolean).slice(0,6);
+  if(!terms.length)return [];
+
+  const values:string[]=[];
+  const termClauses=terms.map(term=>{
+    const idx=values.push(`%${term}%`);
+    return `(p.pincode ILIKE $${idx} OR p.office_name ILIKE $${idx} OR p.district ILIKE $${idx} OR p.state ILIKE $${idx} OR COALESCE(p.division_name,'') ILIKE $${idx} OR COALESCE(p.region_name,'') ILIKE $${idx})`;
+  });
+  const exactPinIndex=values.push(q);
+  const prefixPinIndex=values.push(`${q}%`);
+  const limitIndex=values.push(String(Math.min(Math.max(limit,1),50)));
+
   const result=await getDb().query(`SELECT p.pincode,p.district,p.state,MIN(p.office_name) AS office,COUNT(*)::int AS post_offices,COALESCE(c.status,'NOT_HERE_YET') AS cult_status
     FROM postal_post_offices p
     LEFT JOIN cult_locations c ON c.pincode=p.pincode
-    WHERE p.pincode LIKE $1 OR p.office_name ILIKE $2 OR p.district ILIKE $2 OR p.state ILIKE $2
+    WHERE ${termClauses.join(' AND ')}
     GROUP BY p.pincode,p.district,p.state,c.status
-    ORDER BY CASE WHEN p.pincode=$3 THEN 0 WHEN p.pincode LIKE $1 THEN 1 ELSE 2 END,p.pincode
-    LIMIT $4`,[`${q}%`,`%${q}%`,q,Math.min(Math.max(limit,1),50)]);
+    ORDER BY CASE WHEN p.pincode=$${exactPinIndex} THEN 0 WHEN p.pincode LIKE $${prefixPinIndex} THEN 1 ELSE 2 END,p.pincode
+    LIMIT $${limitIndex}`,[...values.slice(0,-1),Number(values[values.length-1])]);
   return result.rows.map(r=>({pincode:r.pincode.trim(),district:r.district,state:r.state,office:r.office,postOffices:Number(r.post_offices),cultStatus:r.cult_status}));
 }
 
