@@ -3,6 +3,7 @@ import type {Metadata} from 'next';
 import {notFound} from 'next/navigation';
 import {getPostalPin,postalSlug} from '../../../lib/postal-db';
 import {getCultLocation} from '../../../lib/cult-db';
+import PostOfficeDirectory from './PostOfficeDirectory';
 
 const SITE='https://cult.pincode.cafe';
 const DIGIPIN_SITE='https://digipin.pincode.cafe';
@@ -10,8 +11,6 @@ const label={ACTIVE:'ACTIVE',FORMING:'FORMING',NOT_HERE_YET:'NOT HERE YET'} as c
 export const dynamic='force-dynamic';
 
 async function resolvePostal(pin:string){try{return await getPostalPin(pin)}catch{return null}}
-function officeTypeLabel(name:string,type:string|null){const u=name.toUpperCase();if(u.includes(' B.O'))return 'Branch Post Office (B.O)';if(u.includes(' S.O'))return 'Sub Post Office (S.O)';if(u.includes(' H.O'))return 'Head Post Office (H.O)';return type&&type.toUpperCase()!=='PO'?type:'Post Office'}
-function deliveryInfo(status:string|null){const n=(status||'').toLowerCase().replace(/[-_]/g,' ').trim();const non=n.includes('non')&&n.includes('delivery');if(!non&&n.includes('delivery'))return {label:'Delivery Office',description:'Delivers mail to addresses in its assigned delivery area.',icon:'fa-solid fa-truck'};if(non)return {label:'Non-Delivery Office',description:'Provides postal services, but doorstep delivery is handled by another delivery office.',icon:'fa-solid fa-circle-minus'};return {label:'Delivery status not specified',description:'The source postal directory does not specify a delivery role for this office.',icon:'fa-solid fa-circle-question'}}
 
 export async function generateMetadata({params}:{params:{pin:string}}):Promise<Metadata>{
   if(!/^\d{6}$/.test(params.pin))return {title:'Invalid PIN Code',robots:{index:false,follow:false}};
@@ -47,21 +46,18 @@ export default async function PinPage({params}:{params:{pin:string}}){
         <div className="pinDashboardNumber">{d.pincode}</div>
         <h1>{d.district}<span>{d.state}</span></h1>
         <div className="pinSummaryGrid">
-          <div><span>POST OFFICES</span><b>{d.postOffices.length}</b></div>
-          <div><span>DIVISION</span><b>{division}</b></div>
-          <div><span>REGION</span><b>{region}</b></div>
+          <div><span>POST OFFICES</span><b><i className="fa-solid fa-building" aria-hidden="true"/> {d.postOffices.length}</b></div>
+          <div><span>DIVISION</span><b><i className="fa-solid fa-landmark" aria-hidden="true"/> {division}</b></div>
+          <div><span>REGION</span><b><i className="fa-solid fa-map" aria-hidden="true"/> {region}</b></div>
         </div>
       </div>
       <aside className="pinDashboardAside">
-        <a className="utilityCard" href={DIGIPIN_SITE} target="_blank" rel="noreferrer"><span>PRECISE LOCATION</span><h2><i className="fa-solid fa-location-dot" aria-hidden="true"/> DIGIPIN</h2><p>Find the precise digital location inside this postal area.</p><b>OPEN DIGIPIN →</b></a>
-        {status==='ACTIVE'?<div className="utilityCard cultUtility"><span>194.194 CULT</span><h2>{cult.chapterName||'Active Chapter'}</h2><p>{cult.hostLocation||d.district}{cult.sinceYear?` · Since ${cult.sinceYear}`:''}</p><b>THIS PIN HAS A CULT.</b></div>:status==='FORMING'?<div className="utilityCard cultUtility formingUtility"><span>194.194 CULT</span><h2>FORMING</h2><p>The community is taking shape in this PIN.</p></div>:<a className="utilityCard cultUtility" href={cultMailto}><span>194.194 CULT</span><h2>NOT HERE YET</h2><p>Be the reason it starts in {d.pincode}.</p><b>BRING 194.194 CULT HERE →</b></a>}
+        <a className="utilityCard digipinUtility" href={DIGIPIN_SITE} target="_blank" rel="noreferrer"><span>PRECISE LOCATION</span><h2><i className="fa-solid fa-location-dot" aria-hidden="true"/> DIGIPIN</h2><p>Find the precise digital location inside this postal area.</p><b>OPEN DIGIPIN →</b></a>
+        {status==='ACTIVE'?<div className="utilityCard cultUtility"><span>194.194 CULT</span><h2><i className="fa-solid fa-people-group" aria-hidden="true"/> {cult.chapterName||'Active Chapter'}</h2><p>{cult.hostLocation||d.district}{cult.sinceYear?` · Since ${cult.sinceYear}`:''}</p><b>THIS PIN HAS A CULT.</b></div>:status==='FORMING'?<div className="utilityCard cultUtility formingUtility"><span>194.194 CULT</span><h2><i className="fa-solid fa-people-group" aria-hidden="true"/> FORMING</h2><p>The community is taking shape in this PIN.</p></div>:<a className="utilityCard cultUtility" href={cultMailto}><span>194.194 CULT</span><h2><i className="fa-solid fa-people-group" aria-hidden="true"/> NOT HERE YET</h2><p>Be the reason it starts in {d.pincode}.</p><b>BRING 194.194 CULT HERE →</b></a>}
       </aside>
     </section>
 
-    <section className="postalCompact">
-      <div className="postalCompactHead"><div><span>POSTAL IDENTITY</span><h2>Post Offices in {d.pincode}</h2></div><b>{d.postOffices.length} OFFICE{d.postOffices.length===1?'':'S'}</b></div>
-      <div className="officeGrid compactOfficeGrid">{d.postOffices.map(o=>{const delivery=deliveryInfo(o.deliveryStatus);return <article key={o.officeName}><h3>{o.officeName}</h3><p className="officeType"><i className="fa-solid fa-building" aria-hidden="true"/> <b>{officeTypeLabel(o.officeName,o.officeType)}</b></p><p className="deliveryRole"><i className={delivery.icon} aria-hidden="true"/> <b>{delivery.label}</b></p><p>{delivery.description}</p><div className="officeMeta"><small><i className="fa-solid fa-location-dot" aria-hidden="true"/> {d.district}, {d.state} — {d.pincode}</small>{o.divisionName&&<small><i className="fa-solid fa-building-columns" aria-hidden="true"/> <b>Division:</b> {o.divisionName}</small>}{o.regionName&&<small><i className="fa-solid fa-map" aria-hidden="true"/> <b>Region:</b> {o.regionName}</small>}</div></article>})}</div>
-    </section>
+    <PostOfficeDirectory pincode={d.pincode} district={d.district} state={d.state} offices={d.postOffices}/>
 
     {status==='ACTIVE'&&cult.hostLocation==='Pin Code Café'&&<section className="originCompact"><span>FOUNDING CHAPTER</span><div><h2>Pin Code Café · Dhenkanal</h2><p>Birthplace of 194.194 Cult · PIN {d.pincode}</p></div><a href="https://pincode.cafe" target="_blank" rel="noreferrer">VISIT PINCODE.CAFE →</a></section>}
     <footer><b>194.194 CULT</b><span>PIN CODE · DIGIPIN · COMMUNITY</span><span>PIN DATA: INDIA POST / OGD</span></footer>
